@@ -253,10 +253,10 @@ where
   issueRequest' :: (MonadLogger m)
                 => Request -> m Response
   issueRequest' request = do
-    logDebug ["Request: ", toLogStr (show request)]
+    logDebug [toLogStr (show request)]
 
     resp <- httpLBS request
-    logDebug ["Response: ", toLogStr (show resp)]
+    logDebug [toLogStr (show resp)]
 
     case readP_to_S (pResponse <* eof) $ cs $ getResponseBody resp of
       ((gwresponse, ""):_) -> return gwresponse
