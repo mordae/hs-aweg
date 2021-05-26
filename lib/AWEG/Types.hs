@@ -9,7 +9,7 @@
 --
 
 module AWEG.Types
-  ( CellNumber(..)
+  ( PhoneNumber
   , OutgoingSMS(..)
   , SendResult(..)
   , News(..)
@@ -27,35 +27,38 @@ where
   import Data.Time (LocalTime)
 
 
-  newtype CellNumber
-    = CellNumber
-      { cellNumberText :: Text
+  newtype PhoneNumber
+    = PhoneNumber
+      { phoneNumber    :: Text
       }
     deriving (Show)
 
-  instance IsString CellNumber where
-    fromString = CellNumber . cs
+  instance IsString PhoneNumber where
+    fromString = PhoneNumber . cs
 
-  instance ConvertibleStrings CellNumber Text where
-    convertString CellNumber{..} = cellNumberText
+  instance ConvertibleStrings PhoneNumber Text where
+    convertString PhoneNumber{..} = phoneNumber
 
-  instance Read CellNumber where
-    readsPrec _ = readP_to_S pCellNumber
+  instance ConvertibleStrings Text PhoneNumber where
+    convertString text = PhoneNumber text
+
+  instance Read PhoneNumber where
+    readsPrec _ = readP_to_S pPhoneNumber
 
 
-  pCellNumber :: ReadP CellNumber
-  pCellNumber = do
+  pPhoneNumber :: ReadP PhoneNumber
+  pPhoneNumber = do
     _    <- string "+"
     nums <- many1 (satisfy isDigit)
 
     if length nums > 16
        then pfail
-       else return $ CellNumber (cs ('+' : nums))
+       else return $ PhoneNumber (cs ('+' : nums))
 
 
   data OutgoingSMS
     = OutgoingSMS
-      { recipient      :: CellNumber
+      { recipient      :: PhoneNumber
       , payload        :: Text
       , bulkId         :: Maybe Int64
       , application    :: Text
@@ -93,7 +96,7 @@ where
       , bulk           :: Int64
       , status         :: PartStatus
       , ts             :: LocalTime
-      , number         :: CellNumber
+      , number         :: PhoneNumber
       }
     deriving (Show)
 
@@ -101,7 +104,7 @@ where
   data IncomingSMS
     = IncomingSMS
       { part           :: Int64
-      , sender         :: CellNumber
+      , sender         :: PhoneNumber
       , ts             :: LocalTime
       , payload        :: Text
       }

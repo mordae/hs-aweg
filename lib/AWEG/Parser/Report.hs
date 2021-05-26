@@ -98,7 +98,7 @@ where
     _enc     <- sep *> many safe
     payload' <- sep *> unescape (many (except "\n"))
 
-    let sender  = CellNumber (cs sender')
+    let sender  = fromString sender'
         payload = cs payload'
 
     return IncomingSMS{..}
