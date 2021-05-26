@@ -10,6 +10,7 @@
 
 module AWEG.Types
   ( PhoneNumber
+  , parsePhoneNumber
   , OutgoingSMS(..)
   , SendResult(..)
   , News(..)
@@ -20,29 +21,9 @@ module AWEG.Types
 where
   import Praha
 
+  import AWEG.Parser.PhoneNumber
+
   import Data.Time (LocalTime)
-
-
-  -- |
-  -- Just a phone number in the international format with country code.
-  -- That is, a @+@ sign followed by up to 15 numbers.
-  --
-  -- There is no validation when being converted to and from 'Text'.
-  --
-  newtype PhoneNumber
-    = PhoneNumber
-      { phoneNumber    :: Text
-      }
-    deriving (Show)
-
-  instance IsString PhoneNumber where
-    fromString = PhoneNumber . cs
-
-  instance ConvertibleStrings PhoneNumber Text where
-    convertString PhoneNumber{..} = phoneNumber
-
-  instance ConvertibleStrings Text PhoneNumber where
-    convertString text = PhoneNumber text
 
 
   -- |

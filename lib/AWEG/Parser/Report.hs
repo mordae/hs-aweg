@@ -16,13 +16,13 @@ where
   import Praha hiding (many, optional)
 
   import AWEG.Types
+  import AWEG.Parser.PhoneNumber
 
   import Network.HTTP.Types (urlDecode)
 
   import Data.Time
 
   import Text.ParserCombinators.ReadP
-  import Data.Char (isDigit)
   import Numeric
 
 
@@ -120,16 +120,6 @@ where
 
   pLocalTime :: ReadP LocalTime
   pLocalTime = readPTime False defaultTimeLocale "%0Y%m%d%H%M%S"
-
-
-  pPhoneNumber :: ReadP PhoneNumber
-  pPhoneNumber = do
-    _    <- string "+"
-    nums <- many1 (satisfy isDigit)
-
-    if length nums > 15
-       then pfail
-       else return $ fromString ('+' : nums)
 
 
   except :: [Char] -> ReadP Char

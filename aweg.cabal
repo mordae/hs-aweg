@@ -80,6 +80,7 @@ library
 
     hs-source-dirs: lib
     other-modules:
+        AWEG.Parser.PhoneNumber
         AWEG.Parser.Response
         AWEG.Parser.Report
         AWEG.Build
