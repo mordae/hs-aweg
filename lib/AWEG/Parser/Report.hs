@@ -22,7 +22,7 @@ where
   import Data.Time
 
   import Text.ParserCombinators.ReadP
-  import Text.Read (reads)
+  import Data.Char (isDigit)
   import Numeric
 
 
@@ -82,7 +82,7 @@ where
     status <- sep *> pStatus
     _      <- optional (sep *> pLocalTime)
     ts     <- sep *> pLocalTime
-    number <- sep *> readS_to_P reads
+    number <- sep *> pPhoneNumber
 
     return Receipt{..}
 
@@ -120,6 +120,16 @@ where
 
   pLocalTime :: ReadP LocalTime
   pLocalTime = readPTime False defaultTimeLocale "%0Y%m%d%H%M%S"
+
+
+  pPhoneNumber :: ReadP PhoneNumber
+  pPhoneNumber = do
+    _    <- string "+"
+    nums <- many1 (satisfy isDigit)
+
+    if length nums > 15
+       then pfail
+       else return $ fromString ('+' : nums)
 
 
   except :: [Char] -> ReadP Char

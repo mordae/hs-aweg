@@ -14,13 +14,20 @@
 --
 
 module AWEG
-  ( Gateway
+  ( module AWEG.Types
+  , Gateway
   , makeGateway
+
+    -- * Sending Messages
   , sendSMS
+
+    -- * Receiving Messages and Receipts
   , watchNews
   , ackMessage
   , ackReceipt
-  , module AWEG.Types
+
+    -- * Miscelanoues
+  , getDailyLimitRest
   )
 where
   import Praha
@@ -59,6 +66,12 @@ where
   defaultWait = 300
 
 
+  -- |
+  -- Context for communication with the SMS gateway.
+  --
+  -- Retains information about timeouts as well as some miscelaneous
+  -- information gathered from the replies.
+  --
   data Gateway
     = Gateway
       { baseRequest    :: Request
@@ -73,6 +86,22 @@ where
       }
 
 
+  -- |
+  -- Get last known remaining daily quota.
+  --
+  getDailyLimitRest :: (MonadIO m) => Gateway -> m (Maybe Int64)
+  getDailyLimitRest Gateway{dailyLimitRest} = readIORef dailyLimitRest
+
+
+  -- |
+  -- Create gateway context using:
+  --
+  -- Example:
+  --
+  -- @
+  -- gw <- 'makeGateway' \"https:\/\/aweg.t-mobile.cz\/\" \"scully\" \"letme1n\"
+  -- @
+  --
   makeGateway :: (MonadIO m) => Text -> Text -> Text -> m Gateway
   makeGateway baseurl login password = do
     baseRequest    <- pure $ fromString (cs baseurl)
@@ -91,6 +120,14 @@ where
     return Gateway{..}
 
 
+  -- |
+  -- Send SMS through the gateway.
+  --
+  -- NOTE: Documentation states that messages can be rejected for various
+  -- reasons, such as trying to send a \"premium SMS\" without them
+  -- being enabled, but it accepts basically anything and then just loses it.
+  -- The only thing that gets rejected reliably is empty payload.
+  --
   sendSMS :: (MonadLogger m, MonadUnliftIO m)
           => Gateway -> OutgoingSMS -> m SendResult
   sendSMS Gateway{..} OutgoingSMS{..} = do
@@ -160,6 +197,8 @@ where
   -- |
   -- Long-poll the gateway in order to receive 'News' indefinitely.
   --
+  -- Make sure to properly 'ackMessage' and 'ackReceipt'.
+  --
   watchNews :: (MonadLogger m, MonadUnliftIO m)
             => Gateway -> (News -> m ()) -> m ()
   watchNews gw@Gateway{..} handler = forever do
@@ -219,6 +258,13 @@ where
         logError ["Failed to parse: ", toLogStr text]
 
 
+  -- |
+  -- Acknowledge incoming message.
+  --
+  -- You should really do this for every received message.
+  -- Otherwise the gateway will keep pestering us about them
+  -- ofter couple of seconds.
+  --
   ackMessage :: (MonadLogger m, MonadUnliftIO m)
              => Gateway -> Int64 -> m ()
   ackMessage Gateway{..} part = do
@@ -228,6 +274,11 @@ where
                   & addParam "be" release
 
 
+  -- |
+  -- Acknowledge message delivery receipt.
+  --
+  -- Ditto, please use this.
+  --
   ackReceipt :: (MonadLogger m, MonadUnliftIO m)
              => Gateway -> Int64 -> m ()
   ackReceipt Gateway{..} part = do
