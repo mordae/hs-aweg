@@ -58,6 +58,11 @@ where
   release = "hs-aweg/" <> cs packageVersion
 
 
+  -- | Tag for logging.
+  tag :: LogStr
+  tag = "aweg"
+
+
   -- |
   -- Wait for 300 seconds (5 minutes) after we've been told off by default.
   -- This should only apply to the situation when our quota was exceeded.
@@ -206,7 +211,7 @@ where
       do
         tryWaiting pollAfter
 
-        logDebug ["Starting long poll..."]
+        logDebug tag ["Starting long poll..."]
         sleep <- readIORef pollSleep
         longPoll gw handler $ baseRequest
                             & setRequestPath "/longtime"
@@ -218,9 +223,9 @@ where
         setDelay pollAfter delay
 
       \(ex :: HttpException) -> do
-        logError ["Caught ", toLogStr (show ex)]
+        logError tag ["Caught ", toLogStr (show ex)]
         delay <- readIORef pollBackoff
-        logInfo ["Next poll delayed by ", toLogStr delay, " seconds."]
+        logInfo tag ["Next poll delayed by ", toLogStr delay, " seconds."]
         setDelay pollAfter delay
 
 
@@ -238,12 +243,12 @@ where
   parseAndHandle :: (MonadLogger m)
                  => Gateway -> (News -> m ()) -> Text -> m ()
   parseAndHandle Gateway{..} handler text = do
-    logDebug ["Report: ", toLogStr text]
+    logDebug tag ["Report: ", toLogStr text]
 
     case readP_to_S (pReportLine <* eof) (cs text) of
       (RepStatus code, ""):_ -> do
         when (code < 200 || code >= 300) do
-          logError ["Report failed with code ", toLogStr code]
+          logError tag ["Report failed with code ", toLogStr code]
           backoff <- readIORef pollBackoff
           setDelay pollAfter backoff
 
@@ -255,7 +260,7 @@ where
       (RepReceipt receipt, ""):_  -> handler DeliveryUpdate{..}
 
       _otherwise -> do
-        logError ["Failed to parse: ", toLogStr text]
+        logError tag ["Failed to parse: ", toLogStr text]
 
 
   -- |
@@ -297,17 +302,17 @@ where
   issueRequest request = do
     catch (issueRequest' request)
           \(ex :: HttpException) -> do
-            logError ["Caught: ", toLogStr (show ex)]
+            logError tag ["Caught: ", toLogStr (show ex)]
             return $ badResponse (show ex)
 
 
   issueRequest' :: (MonadLogger m)
                 => Request -> m Response
   issueRequest' request = do
-    logDebug [toLogStr (show request)]
+    logDebug tag [toLogStr (show request)]
 
     resp <- httpLBS request
-    logDebug [toLogStr (show resp)]
+    logDebug tag [toLogStr (show resp)]
 
     case readP_to_S (pResponse <* eof) $ cs $ getResponseBody resp of
       ((gwresponse, ""):_) -> return gwresponse
