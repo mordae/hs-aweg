@@ -135,11 +135,12 @@ where
   --
   sendSMS :: (MonadLogger m, MonadUnliftIO m)
           => Gateway -> OutgoingSMS -> m SendResult
-  sendSMS Gateway{..} OutgoingSMS{..} = do
+  sendSMS Gateway{..} sms@OutgoingSMS{..} = do
     -- Make sure we do not call the gateway too often.
     tryWaiting sendAfter
 
     -- Then issue the request.
+    logDebug tag ["Send ", toLogStr (show sms)]
     Response{..} <- issueRequest $ baseRequest
                                  & addParam "receiver" (cs recipient)
                                  & addParam "smstext" (payload)
@@ -239,7 +240,6 @@ where
   longPoll :: (MonadLogger m, MonadUnliftIO m)
            => Gateway -> (News -> m ()) -> Request -> m ()
   longPoll gw handler request = do
-    logDebug tag [toLogStr (show request)]
     withResponse request \resp -> do
       runConduit do
         getResponseBody resp
@@ -285,6 +285,7 @@ where
   ackMessage :: (MonadLogger m, MonadUnliftIO m)
              => Gateway -> Int64 -> m ()
   ackMessage Gateway{..} part = do
+    logDebug tag ["ACK message, part ", toLogStr part, "."]
     issueRequest_ $ baseRequest
                   & setRequestPath "/longtime"
                   & addParam "ack" (cs ("M:" <> showHex part ""))
@@ -299,6 +300,7 @@ where
   ackReceipt :: (MonadLogger m, MonadUnliftIO m)
              => Gateway -> Int64 -> m ()
   ackReceipt Gateway{..} part = do
+    logDebug tag ["ACK receipt, part ", toLogStr part, "."]
     issueRequest_ $ baseRequest
                   & setRequestPath "/longtime"
                   & addParam "ack" (cs ("R:" <> showHex part ""))
@@ -321,10 +323,7 @@ where
   issueRequest' :: (MonadLogger m)
                 => Request -> m Response
   issueRequest' request = do
-    logDebug tag [toLogStr (show request)]
-
     resp <- httpLBS request
-    logDebug tag [toLogStr (show resp)]
 
     case readP_to_S (pResponse <* eof) $ cs $ getResponseBody resp of
       ((gwresponse, ""):_) -> return gwresponse
