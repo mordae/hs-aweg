@@ -233,6 +233,7 @@ where
   longPoll :: (MonadLogger m, MonadUnliftIO m)
            => Gateway -> (News -> m ()) -> Request -> m ()
   longPoll gw handler request = do
+    logDebug tag [toLogStr (show request)]
     withResponse request \resp -> do
       runConduit do
         getResponseBody resp
@@ -244,8 +245,6 @@ where
   parseAndHandle :: (MonadLogger m)
                  => Gateway -> (News -> m ()) -> Text -> m ()
   parseAndHandle Gateway{..} handler text = do
-    logDebug tag ["Report: ", toLogStr text]
-
     case readP_to_S (pReportLine <* eof) (cs text) of
       (RepStatus code, ""):_ -> do
         when (code < 200 || code >= 300) do
@@ -257,8 +256,14 @@ where
       (RepPauseTime secs, ""):_   -> writeIORef pollPause secs
       (RepBackoffTime secs, ""):_ -> writeIORef pollBackoff secs
       (RepAnumber anumber', ""):_ -> writeIORef anumber anumber'
-      (RepMessage message, ""):_  -> handler MessageReceived{..}
-      (RepReceipt receipt, ""):_  -> handler DeliveryUpdate{..}
+
+      (RepMessage message, ""):_ -> do
+        logDebug tag [toLogStr (show message)]
+        handler MessageReceived{..}
+
+      (RepReceipt receipt, ""):_ -> do
+        logDebug tag [toLogStr (show receipt)]
+        handler DeliveryUpdate{..}
 
       _otherwise -> do
         logError tag ["Failed to parse: ", toLogStr text]
