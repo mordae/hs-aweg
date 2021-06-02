@@ -171,10 +171,16 @@ where
             _otherwise -> MsgRejected (cs status)
 
     case result of
-      MsgAccepted{} -> return result
-      MsgRejected{} -> return result
+      MsgAccepted{} -> do
+        logInfo tag ["Message accepted, parts ", toLogStr (show parts), "."]
+        return result
+
+      MsgRejected{} -> do
+        logWarning tag ["Message rejected: ", toLogStr (show status)]
+        return result
 
       Retry{} -> do
+        logInfo tag ["Will retry: ", toLogStr (show status)]
         setDelay sendAfter (maybe defaultWait id waitFor)
         return result
 
