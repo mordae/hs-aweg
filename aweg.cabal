@@ -38,6 +38,7 @@ common common
         MultiParamTypeClasses
         NamedFieldPuns
         NoImplicitPrelude
+        NumericUnderscores
         OverloadedStrings
         ParallelListComp
         QuasiQuotes

@@ -41,7 +41,7 @@ where
   import Data.Conduit as Conduit
   import Data.Conduit.Combinators as Conduit
 
-  import Network.HTTP.Client (responseTimeoutNone)
+  import Network.HTTP.Client (responseTimeoutMicro)
   import Network.HTTP.Simple hiding (Response)
 
   import Data.Time.Clock.System (SystemTime(..), getSystemTime)
@@ -217,7 +217,8 @@ where
                             & setRequestPath "/longtime"
                             & addParam "be" release
                             & addParam "sleep" (cs (show sleep))
-                            & setRequestResponseTimeout responseTimeoutNone
+                            & setRequestResponseTimeout
+                                (responseTimeoutMicro 3600_000_000)
 
         delay <- readIORef pollPause
         setDelay pollAfter delay
